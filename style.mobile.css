@@ -141,3 +141,7 @@ body{
   .figure{ height: 140px; }
   .commands{ grid-template-columns:1fr; }
 }
+
+/* Prevent double-tap zoom on interactive elements (best-effort) */
+button, .cmd, .primary, .ghost { touch-action: manipulation; }
+html { touch-action: manipulation; }
