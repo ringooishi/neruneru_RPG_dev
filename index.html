@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ねむねむRPG (Web)</title>
+  <link rel="stylesheet" href="style.mobile.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- ===== Start Screen ===== -->
+    <section id="start-screen" class="card">
+      <h1 class="title">ねむねむRPG</h1>
+      <div class="field">
+        <label for="playerName">あなたの名前</label>
+        <input id="playerName" type="text" placeholder="勇者ねむねむ" />
+      </div>
+
+      <div class="field">
+        <div class="label-row">
+          <span>難易度</span>
+          <span class="hint">（タップで選択）</span>
+        </div>
+        <div class="diff-row" id="difficultyRow"></div>
+      </div>
+
+      <button id="startBtn" class="primary">はじめる</button>
+
+      <details class="notes">
+        <summary>遊び方</summary>
+        <ul>
+          <li>攻撃で敵のHPを減らそう。スキルやアイテムも活用！</li>
+          <li>敵はターン毎に通常攻撃かスキルを使ってくるよ。</li>
+          <li>全ての敵を倒すと勝利。HPが0になるとゲームオーバー。</li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- ===== Game Screen ===== -->
+    <section id="game-screen" class="hidden">
+      <header class="topbar">
+        <div class="game-title">ねむねむRPG</div>
+        <div class="difficulty-pill" id="difficultyPill">NORMAL ・ ふつう</div>
+      </header>
+
+      <!-- Status (2 columns: player / enemy) -->
+      <div class="status card">
+        <div class="status-row" id="playerStatus">
+          <div class="name" id="playerNameLabel">勇者ねむねむ</div>
+          <div class="bar" id="playerHpWrap"><div id="playerHpBar" class="bar-fill hp"></div></div>
+          <div class="bar" id="playerMpWrap"><div id="playerMpBar" class="bar-fill mp"></div></div>
+          <div id="itemPill" class="pill">回復アイテムx3</div>
+        </div>
+
+        <div class="status-row right" id="enemyStatus">
+          <div class="name" id="enemyNameLabel">？？？</div>
+          <div class="bar" id="enemyHpWrap"><div id="enemyHpBar" class="bar-fill ehp"></div></div>
+        </div>
+      </div>
+
+      <div class="arena card">
+        <div class="figures">
+          <div class="figure player">
+            <div class="sprite player-sprite"></div>
+          </div>
+          <div class="figure enemy" id="enemySpriteBox">
+            <div class="sprite enemy-sprite" id="enemySprite"></div>
+          </div>
+        </div>
+
+        <!-- 撃破→次の敵アナウンス -->
+        <img id="nextEnemyBanner" src="img/next_enemy.png" alt="NEXT ENEMY" />
+
+        <div id="effectLayer" class="effect-layer"></div>
+      </div>
+
+      <div class="log card" id="log"></div>
+
+      <div class="commands card">
+        <button id="btnAttack" class="cmd">攻撃</button>
+        <button id="btnSkill"  class="cmd">スキル</button>
+        <button id="btnItem"   class="cmd">アイテム</button>
+        <button id="btnRest"   class="cmd">休む</button>
+      </div>
+
+      <footer class="footer">
+        <button id="btnRetry" class="ghost">リトライ</button>
+      </footer>
+    </section>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="script.js"></script>
+
+  <!-- 勝利 / 敗北 モーダル -->
+  <div id="victoryModal">
+    <h2>🌙おめでとう！これで気持ちよく眠れる！</h2>
+    <p>かかったターン数：<span id="turnCountDisplay">0</span></p>
+    <button onclick="location.reload()">もう一度あそぶ</button>
+    <button onclick="window.close()">おやすみ…終了</button>
+  </div>
+  <div id="gameoverModal">
+    <h2>😱 あなたは眠りを妨げられてしまった…</h2>
+    <p>ゆっくりおやすみして、もう一度挑戦しよう。</p>
+    <button onclick="location.reload()">再挑戦する</button>
+    <button onclick="window.close()">今日は終了</button>
+  </div>
+</body>
+</html>
