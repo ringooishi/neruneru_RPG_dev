@@ -59,8 +59,8 @@ const PLAYER_SKILLS = [
 const DIFFS = {
   EASY:{label:"やさしい",pHP:120,pMP:70,items:5,eHpMul:0.85,eDmgMul:0.80,delay:900},
   NORMAL:{label:"ふつう",pHP:100,pMP:50,items:3,eHpMul:1.00,eDmgMul:1.00,delay:800},
-  HARD:{label:"むずかしい",pHP:90,pMP:45,items:3,eHpMul:1.15,eDmgMul:1.15,delay:700},
-  NIGHTMARE:{label:"ナイトメア",pHP:80,pMP:40,items:3,eHpMul:1.35,eDmgMul:1.30,delay:600}
+  HARD:{label:"むずかしい",pHP:100,pMP:50,items:3,eHpMul:1.15,eDmgMul:1.15,delay:700},
+  NIGHTMARE:{label:"ナイトメア",pHP:100,pMP:50,items:3,eHpMul:1.35,eDmgMul:1.30,delay:600}
 };
 
 const ENEMY_MASTERS = [
@@ -80,9 +80,9 @@ const ENEMY_MASTERS = [
     {name:"通常攻撃",type:"basic",power:15,chance:1.00,log:"睡眠妨害攻撃！"}
   ]},
   // 追加分
-  {name:"寝返りドラゴン",baseHp:200,spriteClass:"enemy-negaeri",skills:[
-    {name:"布団めくり",type:"crit",power:13,chance:0.25,critMul:1.7,log:"布団がはがれた！"},
-    {name:"通常攻撃",type:"basic",power:15,chance:1.00,log:"睡眠妨害攻撃！"}
+  {name:"寝返りドラゴン",baseHp:300,spriteClass:"enemy-negaeri",skills:[
+    {name:"布団めくり",type:"crit",power:8,chance:0.25,critMul:1.7,log:"布団がはがれた！"},
+    {name:"通常攻撃",type:"basic",power:5,chance:1.00,log:"睡眠妨害攻撃！"}
   ]},
   {name:"夜食の誘惑",baseHp:75,spriteClass:"enemy-poteto",skills:[
     {name:"ポテチのささやき",type:"debuff",chance:0.30,effect:"mpDrain",value:12,log:"つい手が伸びてしまう…"},
@@ -95,6 +95,21 @@ const ENEMY_MASTERS = [
   ]}
 ];
 
+// ラスボス定義
+const BOSS_MASTERS = {
+  bakurem: {
+    name: "睡眠破壊竜バクレム",
+    baseHp: 250,
+    spriteClass: "enemy-boss-bakurem",
+    skills: [
+      {name:"悪夢の咆哮", type:"nuke", power:35, chance:0.4, log:"悪夢の咆哮が響き渡る！"},
+      {name:"眠気吸収",   type:"drain", value:20, chance:0.3, log:"眠気を吸い取られた…"},
+      {name:"通常攻撃",   type:"basic", power:20, chance:1.0, log:"鋭い爪で切り裂いた！"}
+    ]
+  }
+};
+
+// 抽選関数（重複なし）
 function sampleWithoutReplacement(arr, n){
   const pool = arr.slice();
   const out = [];
@@ -104,12 +119,23 @@ function sampleWithoutReplacement(arr, n){
   return out;
 }
 
+// 難易度ごとの敵編成
 function buildEnemySequence(diffKey){
   if (diffKey === "EASY" || diffKey === "NORMAL") {
-    return ENEMY_MASTERS.slice(0, 3);   // 既定の3体
+    return ENEMY_MASTERS.slice(0, 3);
   }
-  const count = (diffKey === "HARD") ? 4 : 5; // NIGHTMAREは5体
-  return sampleWithoutReplacement(ENEMY_MASTERS, count);
+
+  if (diffKey === "HARD") {
+    const rnd = sampleWithoutReplacement(ENEMY_MASTERS, 3); // 先に3体ランダム
+    rnd.push(BOSS_MASTERS.bakurem); // ラスボスを追加
+    return rnd;
+  }
+
+  if (diffKey === "NIGHTMARE") {
+    const rnd = sampleWithoutReplacement(ENEMY_MASTERS, 4); // 先に4体ランダム
+    rnd.push(BOSS_MASTERS.bakurem); // ラスボスを追加
+    return rnd;
+  }
 }
 
 // ===== state =====
