@@ -1,3 +1,15 @@
+(function(){
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e){
+    const now = Date.now();
+    if (now - lastTouchEnd <= 350) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+})();
+
 // ===== helpers =====
 const $ = (sel) => document.querySelector(sel);
 const logBox = $("#log");
