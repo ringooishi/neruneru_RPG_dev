@@ -71,6 +71,7 @@ body{
 .enemy-sprite.enemy-negaeri{background-image:url("img/negaeri.png")}
 .enemy-sprite.enemy-poteto{background-image:url("img/poteto.png")}
 .enemy-sprite.enemy-shimekiri{background-image:url("img/shimekiri.png")}
+.enemy-sprite.enemy-boss-bakurem{background-image:url("img/boss-bakurem.png")}
 
 .effect-layer{position:absolute;inset:0;pointer-events:none}
 .floating{position:absolute;left:50%;transform:translateX(-50%);font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.6);animation:floatUp .8s ease-out forwards}
