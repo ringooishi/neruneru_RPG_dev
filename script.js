@@ -1,11 +1,11 @@
 (function(){
+  // Prevent double-tap/gesture zoom
   let lastTouchEnd = 0;
   document.addEventListener('touchend', function(e){
     const now = Date.now();
     if (now - lastTouchEnd <= 350) e.preventDefault();
     lastTouchEnd = now;
   }, { passive: false });
-
   document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
   document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
 })();
@@ -33,16 +33,13 @@ function showToast(msg) {
 function floatText(targetEl, text, cssClass = "dmg") {
   const layer = $("#effectLayer");
   if (!layer || !targetEl) return;
-
   const tip = document.createElement("div");
   tip.className = "floating " + cssClass;
   tip.textContent = text;
-
   const base = layer.getBoundingClientRect();
   const box = targetEl.getBoundingClientRect();
   tip.style.left = (box.left + box.width / 2 - base.left) + "px";
   tip.style.top  = (box.top - base.top - 20) + "px";
-
   layer.appendChild(tip);
   setTimeout(() => tip.remove(), 950);
 }
@@ -50,6 +47,15 @@ function floatText(targetEl, text, cssClass = "dmg") {
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 // ===== data =====
+
+// プレイヤーの使えるスキル一覧
+const PLAYER_SKILLS = [
+  { key: "moonSlash",  name: "ムーンスラッシュ", mp: 10, desc: "鋭い一閃で大ダメージを与える（30）", effect: { dmg: 30 }, log: "月光の一閃！" },
+  { key: "sleepSong",  name: "スリープソング", mp: 15, desc: "小ダメージ（14）＋35%で敵をうとうと（次ターン行動不可）", effect: { dmg: 14, sleep: 0.35 }, log: "♪ スリープソング！" },
+  { key: "healLight",  name: "ヒールライト",   mp: 12, desc: "HPを40回復する", effect: { heal: 40 }, log: "やさしい光が包んだ。" },
+  { key: "manaCharge", name: "マナチャージ",   mp: 0,  desc: "MPを25回復する（攻撃はしない）", effect: { mpGain: 25 }, log: "精神統一！ MPが満ちていく…" }
+];
+
 const DIFFS = {
   EASY:{label:"やさしい",pHP:120,pMP:70,items:5,eHpMul:0.85,eDmgMul:0.80,delay:900},
   NORMAL:{label:"ふつう",pHP:100,pMP:50,items:3,eHpMul:1.00,eDmgMul:1.00,delay:800},
@@ -58,7 +64,7 @@ const DIFFS = {
 };
 
 const ENEMY_MASTERS = [
-  {name:"ブルーライトのけもの",baseHp:60,spriteClass:"enemy-blue",skills:[
+  {name:"ブルーライトの獣",baseHp:60,spriteClass:"enemy-blue",skills:[
     {name:"眠気はぎ取り",type:"nuke",power:20,chance:0.35,log:"鋭い光がまぶしい！"},
     {name:"チラつき",type:"crit",power:12,chance:0.20,critMul:1.8,log:"画面がチラついた！"},
     {name:"通常攻撃",type:"basic",power:15,chance:1.00,log:"睡眠妨害攻撃！"}
@@ -72,13 +78,44 @@ const ENEMY_MASTERS = [
     {name:"濃ゆいエスプレッソ",type:"nuke",power:16,chance:0.30,log:"苦味が染みわたる…！"},
     {name:"覚醒テンション",type:"buff",chance:0.25,effect:"doubleNext",log:"次のターン2回攻撃！"},
     {name:"通常攻撃",type:"basic",power:15,chance:1.00,log:"睡眠妨害攻撃！"}
+  ]},
+  // 追加分
+  {name:"寝返りドラゴン",baseHp:200,spriteClass:"enemy-negaeri",skills:[
+    {name:"布団めくり",type:"crit",power:13,chance:0.25,critMul:1.7,log:"布団がはがれた！"},
+    {name:"通常攻撃",type:"basic",power:15,chance:1.00,log:"睡眠妨害攻撃！"}
+  ]},
+  {name:"夜食の誘惑",baseHp:75,spriteClass:"enemy-poteto",skills:[
+    {name:"ポテチのささやき",type:"debuff",chance:0.30,effect:"mpDrain",value:12,log:"つい手が伸びてしまう…"},
+    {name:"通常攻撃",type:"basic",power:16,chance:1.00,log:"睡眠妨害攻撃！"}
+  ]},
+  {name:"締切の影",baseHp:90,spriteClass:"enemy-shimekiri",skills:[
+    {name:"不安の波",type:"nuke",power:19,chance:0.30,log:"胸がざわつく…！"},
+    {name:"焦りの増幅",type:"buff",chance:0.25,effect:"doubleNext",log:"次のターン2回攻撃！"},
+    {name:"通常攻撃",type:"basic",power:16,chance:1.00,log:"睡眠妨害攻撃！"}
   ]}
 ];
+
+function sampleWithoutReplacement(arr, n){
+  const pool = arr.slice();
+  const out = [];
+  while (out.length < Math.min(n, pool.length)) {
+    out.push(pool.splice(Math.floor(Math.random()*pool.length), 1)[0]);
+  }
+  return out;
+}
+
+function buildEnemySequence(diffKey){
+  if (diffKey === "EASY" || diffKey === "NORMAL") {
+    return ENEMY_MASTERS.slice(0, 3);   // 既定の3体
+  }
+  const count = (diffKey === "HARD") ? 4 : 5; // NIGHTMAREは5体
+  return sampleWithoutReplacement(ENEMY_MASTERS, count);
+}
 
 // ===== state =====
 let state = {
   diffKey: "NORMAL",
-  player: { name:"勇者ねむねむ", maxHp:100, hp:100, maxMp:50, mp:50, items:3 },
+  player: { name:"勇者ねむねむ", maxHp:100, hp:100, maxMp:50, mp:50, items:3, skills: [] },
   enemyIndex: 0,
   enemies: [],
   enemy: null,
@@ -89,9 +126,42 @@ let state = {
 };
 
 // ===== UI helpers =====
+function openSkillOverlay(){
+  const ov = $("#skillOverlay");
+  const list = $("#skillList");
+  if (!ov || !list) return;
+
+  list.innerHTML = "";
+  state.player.skills.forEach(sk => {
+    const li = document.createElement("li");
+    li.className = "skill-item";
+    li.innerHTML = `
+      <div style="flex:1">
+        <div class="skill-row">
+          <div class="skill-name">${sk.name}</div>
+          <div class="skill-cost">MP ${sk.mp}</div>
+        </div>
+        <div class="skill-desc">${sk.desc}</div>
+      </div>
+    `;
+    li.addEventListener("click", () => {
+      closeSkillOverlay();
+      playerUseSkill(sk);
+    });
+    list.appendChild(li);
+  });
+
+  ov.classList.remove("hidden");
+  setCommandsEnabled(false);
+}
+function closeSkillOverlay(){
+  const ov = $("#skillOverlay");
+  if (ov) ov.classList.add("hidden");
+  if (!state.busy && !state.gameEnded) setCommandsEnabled(true);
+}
+
 function setBars(){
   const { player, enemy } = state;
-
   const hpFill = $("#playerHpBar");
   const mpFill = $("#playerMpBar");
   const ehpFill = $("#enemyHpBar");
@@ -100,7 +170,6 @@ function setBars(){
   mpFill.style.width = (player.mp/player.maxMp*100) + "%";
   ehpFill.style.width = enemy ? (enemy.hp/enemy.maxHp*100) + "%" : "0%";
 
-  // 数値は親 .bar にセット（CSSで .bar::after に表示）
   $("#playerHpWrap").setAttribute("data-value", `${player.hp}/${player.maxHp}`);
   $("#playerMpWrap").setAttribute("data-value", `${player.mp}/${player.maxMp}`);
   $("#enemyHpWrap").setAttribute("data-value", enemy ? `${enemy.hp}/${enemy.maxHp}` : `--/--`);
@@ -108,7 +177,6 @@ function setBars(){
   mpFill.setAttribute("data-value", `${player.mp}/${player.maxMp}`);
   ehpFill.setAttribute("data-value", enemy ? `${enemy.hp}/${enemy.maxHp}` : `--/--`);
 
-  // アイテム所持数も更新
   $("#itemPill").textContent = `回復アイテムx${player.items}`;
 }
 
@@ -121,7 +189,10 @@ function setCommandsEnabled(v){
 
 function setDifficultyPill(){
   const k = state.diffKey;
-  $("#difficultyPill").textContent = `${k} ・ ${DIFFS[k].label}`;
+  const total = state.enemies?.length || 0;
+  const current = (total && state.enemyIndex < total) ? (state.enemyIndex + 1) : 0;
+  const text = total ? `${k} ・ ${DIFFS[k].label} ・ ${current}/${total}` : `${k} ・ ${DIFFS[k].label}`;
+  $("#difficultyPill").textContent = text;
 }
 
 function populateDiffButtons(){
@@ -164,8 +235,12 @@ function startGame(){
   state.player.mp    = diff.pMP;
   state.player.items = diff.items;
 
-  // 敵リストを生成
-  state.enemies = ENEMY_MASTERS.map(m=>{
+  // スキルロード
+  state.player.skills = PLAYER_SKILLS.map(s => ({ ...s }));
+
+  // 敵リスト生成（数と順序は難易度で決定）
+  const selected = buildEnemySequence(state.diffKey);
+  state.enemies = selected.map(m=>{
     const hp = Math.round(m.baseHp * diff.eHpMul);
     return { name:m.name, spriteClass:m.spriteClass, baseHp:m.baseHp, maxHp:hp, hp:hp, skills:m.skills.map(s=>({...s})) };
   });
@@ -177,15 +252,12 @@ function startGame(){
   state.gameEnded = false;
   state.turnCount = 0;
 
-  // 画面切替
   $("#start-screen").classList.add("hidden");
   $("#game-screen").classList.remove("hidden");
   setDifficultyPill();
 
-  // 名前表示更新
   $("#playerNameLabel").textContent = state.player.name;
 
-  // プレイヤー画像クラス
   const psp = document.querySelector(".player-sprite");
   if (psp) psp.classList.add("player-img");
 
@@ -204,7 +276,8 @@ function nextEnemy(){
   enemySprite.classList.remove("shake");
   enemySprite.style.display = "block";
 
-  // 敵名を表示
+  setDifficultyPill();
+
   $("#enemyNameLabel").textContent = state.enemy.name;
 
   setBars();
@@ -235,24 +308,10 @@ function playerTurn(action){
     log(`${p.name}の攻撃！ ${e.name}に ${dmg} ダメージ！`, "dmg");
 
   } else if (action === "skill"){
-    const mpCost = 15;
-    if (p.mp < mpCost){
-      log("MPが足りない…");
-      state.busy = false;
-      setCommandsEnabled(true);
-      return;
-    }
-    p.mp -= mpCost;
-    const dmg = 14;
-    e.hp = clamp(e.hp - dmg, 0, e.maxHp);
-    floatText(enemyBox, `-${dmg}`, "dmg");
-    const slept = Math.random() < 0.35;
-    if (slept){
-      e._skipTurn = true;
-      log(`♪ スリープソング！ ${e.name}は うとうと…`, "heal");
-    } else {
-      log(`♪ スリープソング！ しかし効かなかった…`);
-    }
+    // 旧ワンボタンスキルはオーバーレイに置き換え
+    openSkillOverlay();
+    state.busy = false; // 入力待ちに戻す
+    return;
 
   } else if (action === "item") {
     if (p.items <= 0){
@@ -262,7 +321,6 @@ function playerTurn(action){
       setCommandsEnabled(true);
       return;
     }
-
     const heal = 50;
     const mpRecover = 20;
     p.items--;
@@ -328,7 +386,88 @@ function playerTurn(action){
     return;
   }
 
-  // 睡眠でスキップ
+  // 睡眠でスキップ（プレイヤー側はここでは発生しない）
+
+  // 敵ターンへ
+  setTimeout(()=>{
+    if (!state.gameEnded) enemyTurn();
+  }, DIFFS[state.diffKey].delay);
+}
+
+function playerUseSkill(sk){
+  if (state.busy || state.gameEnded || !state.enemy) return;
+
+  const p = state.player;
+  const e = state.enemy;
+  const enemyBox  = $("#enemySprite");
+  const playerBox = document.querySelector(".player-sprite");
+
+  if (p.mp < sk.mp){
+    log("MPが足りない…");
+    showToast("MPが足りない…");
+    return;
+  }
+
+  state.busy = true;
+  setCommandsEnabled(false);
+  state.turnCount++;
+
+  // コスト消費
+  p.mp = clamp(p.mp - sk.mp, 0, p.maxMp);
+
+  // 効果適用
+  let didAttack = false;
+  if (sk.effect.dmg){
+    const dmg = sk.effect.dmg;
+    e.hp = clamp(e.hp - dmg, 0, e.maxHp);
+    didAttack = true;
+    enemyBox.classList.add("shake");
+    setTimeout(()=>enemyBox.classList.remove("shake"), 250);
+    floatText(enemyBox, `-${dmg}`, "dmg");
+  }
+  if (sk.effect.sleep){
+    const slept = Math.random() < sk.effect.sleep;
+    if (slept) e._skipTurn = true;
+  }
+  if (sk.effect.heal){
+    const heal = sk.effect.heal;
+    p.hp = clamp(p.hp + heal, 0, p.maxHp);
+    floatText(playerBox, `+${heal}`, "heal");
+  }
+  if (sk.effect.mpGain){
+    const g = sk.effect.mpGain;
+    p.mp = clamp(p.mp + g, 0, p.maxMp);
+    floatText(playerBox, `+${g}MP`, "heal");
+  }
+
+  log(sk.log || `${p.name}はスキルを使った！`, didAttack ? "dmg" : "heal");
+  setBars();
+
+  // 撃破判定
+  if (e.hp <= 0) {
+    log(`${e.name}を倒した！`);
+    state.enemyIndex++;
+
+    const banner = $("#nextEnemyBanner");
+    const enemySprite = $("#enemySprite");
+
+    enemySprite.classList.add("fadeout");
+    setTimeout(() => {
+      enemySprite.classList.remove("fadeout");
+      enemySprite.style.display = "none";
+      banner.style.display = "block";
+    }, 800);
+
+    setTimeout(() => {
+      banner.style.display = "none";
+      nextEnemy();
+      state.busy = false;
+    }, 2000);
+
+    return;
+  }
+
+  // 敵が眠っていればスキップ
   if (e._skipTurn){
     delete e._skipTurn;
     log(`${e.name}は眠っていて動けない！`);
@@ -453,6 +592,15 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("#btnItem").addEventListener("click",   ()=>playerTurn("item"));
   $("#btnRest").addEventListener("click",   ()=>playerTurn("rest"));
   $("#btnRetry").addEventListener("click",  ()=>location.reload());
+
+  // オーバーレイの閉じる
+  const close = $("#skillClose");
+  if (close) close.addEventListener("click", closeSkillOverlay);
+  // 背景タップで閉じる（シート内は閉じない）
+  const ov = $("#skillOverlay");
+  if (ov) ov.addEventListener("click", (e)=>{
+    if (e.target.id === "skillOverlay") closeSkillOverlay();
+  });
 });
 
 function showVictoryModal(turns){
