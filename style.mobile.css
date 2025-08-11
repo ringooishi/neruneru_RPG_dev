@@ -68,6 +68,9 @@ body{
 .enemy-sprite.enemy-blue{background-image:url("img/blu.png")}
 .enemy-sprite.enemy-ghost{background-image:url("img/ghost.png")}
 .enemy-sprite.enemy-caffeine{background-image:url("img/caffeine.png")}
+.enemy-sprite.enemy-negaeri{background-image:url("img/negaeri.png")}
+.enemy-sprite.enemy-poteto{background-image:url("img/poteto.png")}
+.enemy-sprite.enemy-shimekiri{background-image:url("img/shimekiri.png")}
 
 .effect-layer{position:absolute;inset:0;pointer-events:none}
 .floating{position:absolute;left:50%;transform:translateX(-50%);font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.6);animation:floatUp .8s ease-out forwards}
@@ -145,3 +148,38 @@ body{
 /* Prevent double-tap zoom on interactive elements (best-effort) */
 button, .cmd, .primary, .ghost { touch-action: manipulation; }
 html { touch-action: manipulation; }
+
+/* === Skill Overlay === */
+.overlay{
+  position:fixed; inset:0; z-index:900;
+  background:rgba(0,0,0,.6);
+  backdrop-filter:saturate(1.1) blur(4px);
+  display:flex; align-items:flex-end; justify-content:center; /* 下から出るシート風 */
+  padding:12px; padding-bottom:calc(12px + env(safe-area-inset-bottom));
+}
+.overlay .sheet{
+  width:100%; max-width:560px; max-height:80vh;
+  overflow:auto; border-radius:16px;
+}
+.sheet-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px}
+.ghost.small{padding:6px 10px; font-size:.9rem}
+
+.skill-list{list-style:none; margin:0; padding:0; display:grid; gap:8px}
+.skill-item{
+  display:flex; gap:10px; align-items:flex-start;
+  padding:10px; border:1px solid rgba(255,255,255,.1); border-radius:12px;
+  background:#111826; cursor:pointer;
+}
+.skill-item:hover{background:#132033}
+.skill-name{font-weight:800}
+.skill-row{display:flex; align-items:center; gap:8px; margin-bottom:2px}
+.skill-cost{font-size:12px; color:#cfe6ff; background:var(--pill); border:1px solid rgba(255,255,255,.08); border-radius:999px; padding:2px 8px}
+.skill-desc{font-size:13px; color:#cfe6ff; opacity:.9; line-height:1.5}
+
+/* すごく小さい端末での見やすさ */
+@media (max-width: 360px){
+  .skill-desc{font-size:12px}
+}
+
+/* Ensure overlay stays hidden when .hidden is present */
+.overlay.hidden { display: none !important; }
